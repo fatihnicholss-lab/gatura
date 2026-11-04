@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balap Lari Sprint 2 Pemain</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Google Inter & Press Start 2P for Arcade vibe -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            touch-action: manipulation;
+            user-select: none;
+        }
+        .arcade-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+        /* Custom animations & glow effects */
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.6)); }
+            50% { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.9)); }
+        }
+        .glow-blue {
+            animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow-red {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.6)); }
+            50% { filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.9)); }
+        }
+        .glow-red {
+            animation: pulse-glow-red 2s infinite;
+        }
+        .key-badge {
+            transition: all 0.08s ease;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+        }
+        .key-badge.active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.3);
+            background-color: #f59e0b !important;
+            color: #000 !important;
+        }
+        /* Canvas custom styling */
+        canvas {
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white flex flex-col items-center justify-center p-2 sm:p-4 overflow-x-hidden">
+
+    <!-- MAIN CONTAINER -->
+    <div class="w-full max-w-5xl bg-slate-900/90 border border-slate-700/80 rounded-3xl shadow-2xl backdrop-blur-md p-4 sm:p-6 flex flex-col gap-4 relative">
+        
+        <!-- HEADER -->
+        <header class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-2xl shadow-lg">
+                    <i class="fa-solid fa-person-running text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-300 to-rose-400">
+                        DUAL SPRINT 2P
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">Balap Lari Local Multiplayer</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button id="soundToggleBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl border border-slate-700 transition flex items-center gap-2 text-sm font-semibold">
+                    <i class="fa-solid fa-volume-high text-indigo-400" id="soundIcon"></i>
+                    <span class="hidden sm:inline" id="soundText">Suara: ON</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- CANVAS GAME TRACK AREA -->
+        <div class="relative w-full rounded-2xl overflow-hidden border-2 border-slate-800 shadow-inner bg-slate-950">
+            
+            <!-- OVERLAY MENU SCREEN -->
+            <div id="startMenuOverlay" class="absolute inset-0 z-20 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+                <h2 class="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-300 to-orange-500 mb-2 arcade-font tracking-wide">
+                    READY TO RACE?
+                </h2>
+                <p class="text-slate-400 max-w-md text-sm sm:text-base mb-6">
+                    Tekan tombol kontrol secara bergantian secepat mungkin untuk berlari! Hindari rintangan dengan melompat.
+                </p>
+
+                <!-- SETTINGS ROW -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg mb-8">
+                    <!-- JARAK BALAPAN -->
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col gap-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-flag-checkered text-amber-400"></i> Jarak Balap
+                        </label>
+                        <select id="distanceSelect" class="bg-slate-800 border border-slate-700 text-white font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-400 text-center text-sm cursor-pointer">
+                            <option value="100">100 Meter (Sprint Kilat)</option>
+                            <option value="200" selected>200 Meter (Standar)</option>
+                            <option value="400">400 Meter (Uji Ketahanan)</option>
+                        </select>
+                    </div>
+
+                    <!-- SELEKSI RINTANGAN -->
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col gap-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Rintangan (Hurdles)
+                        </label>
+                        <select id="hurdleSelect" class="bg-slate-800 border border-slate-700 text-white font-bold rounded-xl p-2.5 focus:outline-none focus:border-amber-400 text-center text-sm cursor-pointer">
+                            <option value="true" selected>Aktif (Gunakan W / UP)</option>
+                            <option value="false">Tanpa Rintangan (Pure Sprint)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- SELEKSI WARNA / JERSEY PEMAIN -->
+                <div class="grid grid-cols-2 gap-4 w-full max-w-lg mb-8">
+                    <!-- P1 COLOR -->
+                    <div class="bg-blue-950/40 border border-blue-500/30 p-3 rounded-2xl flex flex-col items-center gap-2">
+                        <span class="text-xs font-black text-blue-400">PEMAIN 1 (A/D/W)</span>
+                        <div class="flex gap-2" id="p1ColorPickers">
+                            <button data-color="#3b82f6" class="w-8 h-8 rounded-full bg-blue-500 ring-2 ring-white scale-110 color-btn-p1"></button>
+                            <button data-color="#06b6d4" class="w-8 h-8 rounded-full bg-cyan-500 hover:scale-105 color-btn-p1"></button>
+                            <button data-color="#a855f7" class="w-8 h-8 rounded-full bg-purple-500 hover:scale-105 color-btn-p1"></button>
+                        </div>
+                    </div>
+                    <!-- P2 COLOR -->
+                    <div class="bg-rose-950/40 border border-rose-500/30 p-3 rounded-2xl flex flex-col items-center gap-2">
+                        <span class="text-xs font-black text-rose-400">PEMAIN 2 (&larr;/&rarr;/&uarr;)</span>
+                        <div class="flex gap-2" id="p2ColorPickers">
+                            <button data-color="#ef4444" class="w-8 h-8 rounded-full bg-red-500 ring-2 ring-white scale-110 color-btn-p2"></button>
+                            <button data-color="#f59e0b" class="w-8 h-8 rounded-full bg-amber-500 hover:scale-105 color-btn-p2"></button>
+                            <button data-color="#10b981" class="w-8 h-8 rounded-full bg-emerald-500 hover:scale-105 color-btn-p2"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="startGameBtn" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-lg px-10 py-4 rounded-2xl shadow-xl hover:shadow-emerald-500/20 hover:scale-105 active:scale-95 transition duration-150 flex items-center gap-3">
+                    <i class="fa-solid fa-play text-xl"></i> MULAI PERTANDINGAN
+                </button>
+            </div>
+
+            <!-- COUNTDOWN OVERLAY -->
+            <div id="countdownOverlay" class="hidden absolute inset-0 z-10 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+                <span id="countdownText" class="arcade-font text-6xl sm:text-8xl text-amber-400 drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] animate-bounce">
+                    3
+                </span>
+            </div>
+
+            <!-- GAME CANVAS -->
+            <canvas id="gameCanvas" class="w-full h-[320px] sm:h-[400px] block"></canvas>
+        </div>
+
+        <!-- PLAYER CONTROLS & HUD STATUS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- P1 HUD & CONTROLS -->
+            <div class="bg-slate-800/80 border border-blue-500/30 rounded-2xl p-4 flex flex-col justify-between gap-3 relative overflow-hidden">
+                <div class="absolute -top-10 -left-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span id="p1JerseyDot" class="w-3.5 h-3.5 rounded-full bg-blue-500"></span>
+                        <h3 class="font-black text-blue-400 text-sm tracking-wide">PEMAIN 1</h3>
+                    </div>
+                    <div class="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-950/80 text-blue-300 border border-blue-800/50">
+                        Kecepatan: <span id="p1SpeedText" class="font-bold text-white">0.0</span> km/h
+                    </div>
+                </div>
+
+                <!-- STAMINA / COMBO BAR -->
+                <div>
+                    <div class="flex justify-between text-xs font-bold text-slate-400 mb-1">
+                        <span>STAMINA / COMBO</span>
+                        <span id="p1ComboText" class="text-blue-400">0x</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                        <div id="p1StaminaBar" class="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-75" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- KEY INSTRUCTION INDICATOR -->
+                <div class="flex items-center justify-between bg-slate-900/90 rounded-xl p-2.5 border border-slate-800">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-slate-400 font-bold mr-1">LARI:</span>
+                        <div id="keyA" class="key-badge px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg font-black text-sm text-slate-200">A</div>
+                        <div id="keyD" class="key-badge px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg font-black text-sm text-slate-200">D</div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-slate-400 font-bold mr-1">LOMPAT:</span>
+                        <div id="keyW" class="key-badge px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg font-black text-sm text-slate-200">W</div>
+                    </div>
+                </div>
+
+                <!-- TOUCH / CLICK BUTTONS FOR MOBILE/TESTING -->
+                <div class="grid grid-cols-3 gap-2 sm:hidden pt-1">
+                    <button id="touchP1A" class="bg-blue-600 active:bg-amber-500 text-white font-black py-2 rounded-lg text-xs">A</button>
+                    <button id="touchP1W" class="bg-indigo-600 active:bg-amber-500 text-white font-black py-2 rounded-lg text-xs">LOMPAT</button>
+                    <button id="touchP1D" class="bg-blue-600 active:bg-amber-500 text-white font-black py-2 rounded-lg text-xs">D</button>
+                </div>
+            </div>
+
+            <!-- P2 HUD & CONTROLS -->
+            <div class="bg-slate-800/80 border border-rose-500/30 rounded-2xl p-4 flex flex-col justify-between gap-3 relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-28 h-28 bg-rose-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span id="p2JerseyDot" class="w-3.5 h-3.5 rounded-full bg-rose-500"></span>
+                        <h3 class="font-black text-rose-400 text-sm tracking-wide">PEMAIN 2</h3>
+                    </div>
+                    <div class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-950/80 text-rose-300 border border-rose-800/50">
+                        Kecepatan: <span id="p2SpeedText" class="font-bold text-white">0.0</span> km/h
+                    </div>
+                </div>
+
+                <!-- STAMINA / COMBO BAR -->
+                <div>
+                    <div class="flex justify-between text-xs font-bold text-slate-400 mb-1">
+                        <span>STAMINA / COMBO</span>
+                        <span id="p2ComboText" class="text-rose-400">0x</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                        <div id="p2StaminaBar" class="h-full bg-gradient-to-r from-rose-500 to-amber-400 rounded-full transition-all duration-75" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- KEY INSTRUCTION INDICATOR -->
+                <div class="flex items-center justify-between bg-slate-900/90 rounded-xl p-2.5 border border-slate-800">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-slate-400 font-bold mr-1">LARI:</span>
+                        <div id="keyLeft" class="key-badge px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg font-black text-sm text-slate-200">&larr;</div>
+                        <div id="keyRight" class="key-badge px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg font-black text-sm text-slate-200">&rarr;</div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-slate-400 font-bold mr-1">LOMPAT:</span>
+                        <div id="keyUp" class="key-badge px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg font-black text-sm text-slate-200">&uarr;</div>
+                    </div>
+                </div>
+
+                <!-- TOUCH / CLICK BUTTONS FOR MOBILE/TESTING -->
+                <div class="grid grid-cols-3 gap-2 sm:hidden pt-1">
+                    <button id="touchP2Left" class="bg-rose-600 active:bg-amber-500 text-white font-black py-2 rounded-lg text-xs">&larr;</button>
+                    <button id="touchP2Up" class="bg-purple-600 active:bg-amber-500 text-white font-black py-2 rounded-lg text-xs">LOMPAT</button>
+                    <button id="touchP2Right" class="bg-rose-600 active:bg-amber-500 text-white font-black py-2 rounded-lg text-xs">&rarr;</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- INSTRUCTION TIP FOOTER -->
+        <div class="text-center text-xs text-slate-500 font-medium">
+            <p>Tips: Tekan tombol lari secara <strong>bergantian & irama ritmis</strong> untuk membangun kecepatan maksimal! Jangan asal pencet sembarangan agar tidak tersandung.</p>
+        </div>
+
+    </div>
+
+    <!-- VICTORY / GAME OVER MODAL -->
+    <div id="victoryModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden transform transition-all scale-95 opacity-0" id="victoryModalCard">
+            
+            <div class="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center text-4xl mb-4 border border-amber-500/40 shadow-inner">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+
+            <span class="text-xs font-black tracking-widest text-amber-400 uppercase mb-1">HASIL PERTANDINGAN</span>
+            <h2 id="winnerTitle" class="text-2xl sm:text-4xl font-black text-white mb-6">
+                PEMAIN 1 MENANG!
+            </h2>
+
+            <!-- STATS GRID -->
+            <div class="grid grid-cols-2 gap-3 w-full mb-6">
+                <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-2xl flex flex-col">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase">Waktu Pemenang</span>
+                    <span id="winnerTimeText" class="text-lg font-black text-emerald-400">00:00.00</span>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-2xl flex flex-col">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase">Top Speed P1</span>
+                    <span id="p1TopSpeedText" class="text-lg font-black text-blue-400">0.0 km/h</span>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-2xl flex flex-col">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase">Waktu Runner-Up</span>
+                    <span id="runnerUpTimeText" class="text-lg font-black text-slate-300">00:00.00</span>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-2xl flex flex-col">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase">Top Speed P2</span>
+                    <span id="p2TopSpeedText" class="text-lg font-black text-rose-400">0.0 km/h</span>
+                </div>
+            </div>
+
+            <!-- BUTTON ACTIONS -->
+            <div class="flex gap-3 w-full">
+                <button id="rematchBtn" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3.5 rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition flex items-center justify-center gap-2 text-sm">
+                    <i class="fa-solid fa-rotate-right"></i> MAIN LAGI
+                </button>
+                <button id="menuBtn" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 rounded-2xl border border-slate-700 hover:scale-[1.02] active:scale-95 transition text-sm">
+                    MENU UTAMA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO SYSTEM (WEB AUDIO API SYNTHESIZER) -->
+    <script>
+        // --- SYNTHESIZED SOUND EFFECTS (No external audio files needed) ---
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playStep() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.05);
+
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+
+            playJump() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(450, this.ctx.currentTime + 0.15);
+
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            playStumble() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(30, this.ctx.currentTime + 0.2);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+
+            playWhistle() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(2000, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(2400, this.ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.4);
+            }
+
+            playBeep(freq = 440, duration = 0.1) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playCheer() {
+                if (!this.enabled || !this.ctx) return;
+                // Fanfare arpeggio
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playBeep(freq, 0.25);
+                    }, idx * 100);
+                });
+            }
+        }
+
+        const sound = new SoundSystem();
+    </script>
+
+    <!-- GAME ENGINE CODE -->
+    <script>
+        // --- CANVAS & STATE SETUP ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // State Machine
+        const STATE = {
+            MENU: 'MENU',
+            COUNTDOWN: 'COUNTDOWN',
+            RACING: 'RACING',
+            FINISHED: 'FINISHED'
+        };
+        let gameState = STATE.MENU;
+
+        // Config & Options
+        let raceDistanceMeters = 200;
+        let hurdlesEnabled = true;
+        let trackPixelLength = 4000; // Total canvas world width pixels
+        let cameraX = 0;
+
+        // Colors
+        let p1Color = '#3b82f6';
+        let p2Color = '#ef4444';
+
+        // Timer
+        let startTime = 0;
+        let elapsedTime = 0;
+
+        // Particles & Fireworks
+        let particles = [];
+        let fireworks = [];
+
+        // Player Class
+        class Player {
+            constructor(id, yLane, color) {
+                this.id = id; // 1 or 2
+                this.yLane = yLane; // Lane center Y
+                this.color = color;
+                
+                this.reset();
+            }
+
+            reset() {
+                this.x = 80; // World position X
+                this.y = this.yLane;
+                this.vx = 0; // Speed X
+                this.vy = 0; // Vertical jump speed
+                this.isJumping = false;
+                this.jumpHeight = 0;
+                
+                this.stamina = 100;
+                this.combo = 0;
+                this.lastKey = null; // Track alternating keys ('A'/'D' or 'LEFT'/'RIGHT')
+                this.stumbleTimer = 0; // If stumbled, freeze acceleration
+                
+                this.topSpeed = 0;
+                this.finishTime = null;
+                this.hasFinished = false;
+
+                // Animation frames
+                this.animFrame = 0;
+                this.animTimer = 0;
+            }
+
+            update(dt) {
+                // Stumble penalty count
+                if (this.stumbleTimer > 0) {
+                    this.stumbleTimer -= dt;
+                    this.vx = Math.max(0, this.vx - 15 * dt);
+                } else {
+                    // Natural friction / deceleration
+                    this.vx = Math.max(0, this.vx - 2.8 * dt);
+                }
+
+                // Stamina recovery
+                if (this.stamina < 100) {
+                    this.stamina = Math.min(100, this.stamina + 12 * dt);
+                }
+
+                // Physics movement
+                if (!this.hasFinished) {
+                    this.x += this.vx * dt * 60;
+                } else {
+                    // Slow down gracefully after finish
+                    this.vx = Math.max(0, this.vx - 4 * dt);
+                    this.x += this.vx * dt * 60;
+                }
+
+                // Jump physics
+                if (this.isJumping) {
+                    this.jumpHeight += this.vy * dt * 60;
+                    this.vy -= 1.2 * dt * 60; // Gravity
+
+                    if (this.jumpHeight <= 0) {
+                        this.jumpHeight = 0;
+                        this.isJumping = false;
+                        this.vy = 0;
+                    }
+                }
+
+                // Track Top Speed (convert px/frame to km/h equivalent roughly)
+                const currentKmH = (this.vx * 3.6 * 2.2).toFixed(1);
+                if (parseFloat(currentKmH) > parseFloat(this.topSpeed)) {
+                    this.topSpeed = currentKmH;
+                }
+
+                // Update animation stride based on speed
+                if (this.vx > 0.1) {
+                    this.animTimer += this.vx * dt * 2.5;
+                    if (this.animTimer > 1) {
+                        this.animFrame = (this.animFrame + 1) % 4;
+                        this.animTimer = 0;
+                        if (!this.isJumping && gameState === STATE.RACING) {
+                            sound.playStep();
+                        }
+                    }
+                } else {
+                    this.animFrame = 0;
+                }
+            }
+
+            pushStep(key) {
+                if (this.stumbleTimer > 0 || this.hasFinished || gameState !== STATE.RACING) return;
+
+                const expectedKey = this.id === 1 ? 
+                    (this.lastKey === 'A' ? 'D' : 'A') : 
+                    (this.lastKey === 'LEFT' ? 'RIGHT' : 'LEFT');
+
+                if (this.lastKey === null || key === expectedKey) {
+                    // CORRECT STEP
+                    this.lastKey = key;
+                    this.combo = Math.min(30, this.combo + 1);
+
+                    // Speed acceleration calculation
+                    const comboBonus = 1 + (this.combo * 0.04);
+                    const accel = 0.85 * comboBonus;
+
+                    this.vx = Math.min(13, this.vx + accel);
+                    this.stamina = Math.max(0, this.stamina - 1.5);
+
+                    // Spawn running dust particle
+                    createDust(this.x, this.y);
+
+                } else if (key === this.lastKey) {
+                    // MISTAKE: Pressed same key twice in a row!
+                    this.stumble();
+                }
+            }
+
+            jump() {
+                if (this.isJumping || this.stumbleTimer > 0 || this.hasFinished || gameState !== STATE.RACING) return;
+                this.isJumping = true;
+                this.vy = 11; // Initial jump velocity
+                sound.playJump();
+            }
+
+            stumble() {
+                this.stumbleTimer = 0.6; // Freeze for 0.6 seconds
+                this.combo = 0;
+                this.vx = Math.max(0, this.vx * 0.2); // Severe speed penalty
+                sound.playStumble();
+
+                // Spawn stumble visual text/particle
+                createStumbleEffect(this.x, this.y - 30);
+            }
+
+            draw(ctx) {
+                const drawX = this.x - cameraX;
+                const drawY = this.y - this.jumpHeight;
+
+                ctx.save();
+
+                // Draw Shadow
+                ctx.beginPath();
+                ctx.ellipse(drawX, this.y + 12, 16, 6, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fill();
+
+                // Stumble indicator effect
+                if (this.stumbleTimer > 0) {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.font = 'bold 12px Outfit';
+                    ctx.fillText('TRIPPED!', drawX - 20, drawY - 45);
+                }
+
+                // RUNNER CHARACTER SPRITE (PIXEL/VECTOR ART SYNTHESIS)
+                ctx.translate(drawX, drawY);
+
+                // Body Head
+                ctx.fillStyle = '#fde047'; // Skin tone
+                ctx.beginPath();
+                ctx.arc(0, -28, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head Band/Hair
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-8, -34, 16, 5);
+
+                // Torso (Jersey)
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.roundRect(-7, -20, 14, 18, 4);
+                ctx.fill();
+
+                // Number on Jersey
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '900 10px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.id.toString(), 0, -8);
+
+                // Legs & Arms Animation Keyframes
+                ctx.strokeStyle = '#f8fafc';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+
+                const legPos = [
+                    { l1: 10, l2: -10, r1: -10, r2: 10 },
+                    { l1: 18, l2: -5, r1: -15, r2: 5 },
+                    { l1: -10, l2: 10, r1: 10, r2: -10 },
+                    { l1: -15, l2: 5, r1: 18, r2: -5 }
+                ][this.animFrame];
+
+                // Legs
+                // Left Leg
+                ctx.beginPath();
+                ctx.moveTo(-3, -2);
+                ctx.lineTo(-3 + legPos.l1 * 0.6, 8);
+                ctx.lineTo(-3 + legPos.l2 * 0.8, 16);
+                ctx.stroke();
+
+                // Right Leg
+                ctx.beginPath();
+                ctx.moveTo(3, -2);
+                ctx.lineTo(3 + legPos.r1 * 0.6, 8);
+                ctx.lineTo(3 + legPos.r2 * 0.8, 16);
+                ctx.stroke();
+
+                // Arms
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 3;
+                // Left Arm
+                ctx.beginPath();
+                ctx.moveTo(-5, -16);
+                ctx.lineTo(-5 - legPos.l1 * 0.5, -8);
+                ctx.stroke();
+
+                // Right Arm
+                ctx.beginPath();
+                ctx.moveTo(5, -16);
+                ctx.lineTo(5 - legPos.r1 * 0.5, -8);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        // Initialize Players
+        let players = [
+            new Player(1, 130, p1Color),
+            new Player(2, 270, p2Color)
+        ];
+
+        // Hurdles Array
+        let hurdles = [];
+
+        function generateHurdles() {
+            hurdles = [];
+            if (!hurdlesEnabled) return;
+
+            // Place hurdles periodically across the track
+            const startX = 600;
+            const endX = trackPixelLength - 500;
+            const spacing = 450;
+
+            for (let x = startX; x < endX; x += spacing + (Math.random() * 100 - 50)) {
+                hurdles.push({ x: x, lane: 1, hitP1: false });
+                hurdles.push({ x: x, lane: 2, hitP2: false });
+            }
+        }
+
+        // Particle System
+        function createDust(x, y) {
+            for (let i = 0; i < 2; i++) {
+                particles.push({
+                    x: x + (Math.random() * 10 - 5),
+                    y: y + 14,
+                    vx: -Math.random() * 2 - 1,
+                    vy: -Math.random() * 1,
+                    size: Math.random() * 4 + 2,
+                    color: 'rgba(203, 213, 225, 0.5)',
+                    life: 0.3
+                });
+            }
+        }
+
+        function createStumbleEffect(x, y) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    size: Math.random() * 5 + 3,
+                    color: '#ef4444',
+                    life: 0.5
+                });
+            }
+        }
+
+        function createFireworks() {
+            const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6'];
+            for (let i = 0; i < 60; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 2;
+                fireworks.push({
+                    x: canvas.width / 2 + (Math.random() * 200 - 100),
+                    y: canvas.height / 3 + (Math.random() * 100 - 50),
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 1.2,
+                    size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        // --- GAME LOOP & UPDATES ---
+        let lastTimestamp = 0;
+
+        function gameLoop(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.1); // Delta time in seconds
+            lastTimestamp = timestamp;
+
+            update(dt);
+            render();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(dt) {
+            // Update Elapsed Time
+            if (gameState === STATE.RACING) {
+                elapsedTime = (performance.now() - startTime) / 1000;
+            }
+
+            // Update Players
+            players.forEach(p => p.update(dt));
+
+            // Camera Tracking (Smooth follow lead player)
+            if (gameState === STATE.RACING || gameState === STATE.FINISHED) {
+                const leadX = Math.max(players[0].x, players[1].x);
+                const targetCamX = Math.max(0, leadX - canvas.width * 0.35);
+                cameraX += (targetCamX - cameraX) * 0.1;
+                // Clamp camera to track bounds
+                cameraX = Math.min(cameraX, trackPixelLength - canvas.width + 100);
+            }
+
+            // Check Hurdles Collision
+            if (hurdlesEnabled && gameState === STATE.RACING) {
+                hurdles.forEach(h => {
+                    // P1
+                    if (!h.hitP1 && Math.abs(players[0].x - h.x) < 18) {
+                        if (players[0].jumpHeight < 22) {
+                            h.hitP1 = true;
+                            players[0].stumble();
+                        }
+                    }
+                    // P2
+                    if (!h.hitP2 && Math.abs(players[1].x - h.x) < 18) {
+                        if (players[1].jumpHeight < 22) {
+                            h.hitP2 = true;
+                            players[1].stumble();
+                        }
+                    }
+                });
+            }
+
+            // Check Finish Line
+            players.forEach(p => {
+                if (!p.hasFinished && p.x >= trackPixelLength - 200) {
+                    p.hasFinished = true;
+                    p.finishTime = elapsedTime;
+
+                    sound.playWhistle();
+
+                    // If first to finish
+                    if (gameState === STATE.RACING) {
+                        gameState = STATE.FINISHED;
+                        sound.playCheer();
+                        createFireworks();
+                        setTimeout(showVictoryModal, 1200);
+                    }
+                }
+            });
+
+            // Update Particles
+            particles.forEach((pt, index) => {
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.life -= dt;
+                if (pt.life <= 0) particles.splice(index, 1);
+            });
+
+            // Update Fireworks
+            fireworks.forEach((fw, index) => {
+                fw.x += fw.vx;
+                fw.y += fw.vy;
+                fw.vy += 2 * dt; // Gravity
+                fw.life -= dt;
+                if (fw.life <= 0) fireworks.splice(index, 1);
+            });
+
+            // Update UI HUD
+            updateHUD();
+        }
+
+        function updateHUD() {
+            document.getElementById('p1SpeedText').innerText = players[0].topSpeed;
+            document.getElementById('p2SpeedText').innerText = players[1].topSpeed;
+
+            document.getElementById('p1ComboText').innerText = players[0].combo + 'x';
+            document.getElementById('p2ComboText').innerText = players[1].combo + 'x';
+
+            document.getElementById('p1StaminaBar').style.width = players[0].stamina + '%';
+            document.getElementById('p2StaminaBar').style.width = players[1].stamina + '%';
+        }
+
+        // --- RENDER GAME CANVAS ---
+        function render() {
+            // Clear Background
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Stadium Grass background
+            ctx.fillStyle = '#065f46';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Running Tracks (Red Clay)
+            const trackY1 = 40;
+            const trackHeight = 320;
+            ctx.fillStyle = '#991b1b';
+            ctx.fillRect(0, trackY1, canvas.width, trackHeight);
+
+            // Draw Track Texture / Lines
+            ctx.save();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+
+            // Outer & Middle Lanes Lines
+            const lanesY = [40, 180, 320];
+            lanesY.forEach(y => {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            });
+
+            // Lane Numbers
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.font = '900 24px Outfit';
+            ctx.fillText('LANE 1', 20 - cameraX, 115);
+            ctx.fillText('LANE 2', 20 - cameraX, 255);
+
+            // START LINE
+            const startXWorld = 100;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(startXWorld - cameraX, 40);
+            ctx.lineTo(startXWorld - cameraX, 320);
+            ctx.stroke();
+
+            // FINISH LINE (Checkered pattern)
+            const finishXWorld = trackPixelLength - 200;
+            const finishDrawX = finishXWorld - cameraX;
+            const tileSize = 16;
+            
+            for (let y = 40; y < 320; y += tileSize) {
+                for (let i = 0; i < 2; i++) {
+                    ctx.fillStyle = (Math.floor(y / tileSize) + i) % 2 === 0 ? '#ffffff' : '#000000';
+                    ctx.fillRect(finishDrawX + (i * tileSize), y, tileSize, tileSize);
+                }
+            }
+
+            // Distance Markers (Every 50m)
+            ctx.fillStyle = '#fef08a';
+            ctx.font = 'bold 12px Press Start 2P';
+            const totalDist = raceDistanceMeters;
+            for (let m = 50; m <= totalDist; m += 50) {
+                const markX = startXWorld + (m / totalDist) * (finishXWorld - startXWorld);
+                ctx.fillRect(markX - cameraX - 2, 40, 4, 280);
+                ctx.fillText(m + 'M', markX - cameraX - 20, 30);
+            }
+
+            // DRAW HURDLES
+            if (hurdlesEnabled) {
+                hurdles.forEach(h => {
+                    const hX = h.x - cameraX;
+                    if (hX > -50 && hX < canvas.width + 50) {
+                        const hY = h.lane === 1 ? 130 : 270;
+                        ctx.fillStyle = '#f59e0b'; // Amber hurdle top
+                        ctx.fillRect(hX - 10, hY - 18, 20, 5);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(hX - 8, hY - 13, 16, 15);
+                        ctx.fillStyle = '#000000';
+                        ctx.fillRect(hX - 6, hY - 8, 12, 4);
+                    }
+                });
+            }
+
+            // DRAW PARTICLES
+            particles.forEach(pt => {
+                ctx.fillStyle = pt.color;
+                ctx.beginPath();
+                ctx.arc(pt.x - cameraX, pt.y, pt.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // DRAW PLAYERS
+            players.forEach(p => p.draw(ctx));
+
+            // DRAW FIREWORKS
+            fireworks.forEach(fw => {
+                ctx.fillStyle = fw.color;
+                ctx.beginPath();
+                ctx.arc(fw.x, fw.y, fw.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // DRAW TIMER OVERLAY ON CANVAS TOP
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+            ctx.roundRect(canvas.width / 2 - 70, 10, 140, 32, 10);
+            ctx.fill();
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 14px Press Start 2P';
+            ctx.textAlign = 'center';
+            ctx.fillText(elapsedTime.toFixed(2) + 's', canvas.width / 2, 32);
+
+            ctx.restore();
+        }
+
+        // --- GAME CONTROLS & FLOW ---
+        function startCountdown() {
+            gameState = STATE.COUNTDOWN;
+            document.getElementById('startMenuOverlay').classList.add('hidden');
+            const countdownEl = document.getElementById('countdownOverlay');
+            const countdownText = document.getElementById('countdownText');
+            countdownEl.classList.remove('hidden');
+
+            let count = 3;
+            countdownText.innerText = count;
+            sound.playBeep(440, 0.15);
+
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownText.innerText = count;
+                    sound.playBeep(440, 0.15);
+                } else if (count === 0) {
+                    countdownText.innerText = 'GO!';
+                    sound.playBeep(880, 0.3);
+                } else {
+                    clearInterval(timer);
+                    countdownEl.classList.add('hidden');
+                    gameState = STATE.RACING;
+                    startTime = performance.now();
+                }
+            }, 800);
+        }
+
+        function resetGame() {
+            // Read settings
+            raceDistanceMeters = parseInt(document.getElementById('distanceSelect').value);
+            hurdlesEnabled = document.getElementById('hurdleSelect').value === 'true';
+
+            // Calculate pixel track length proportional to meters
+            trackPixelLength = 1200 + (raceDistanceMeters * 20);
+
+            // Reset players
+            players[0].color = p1Color;
+            players[1].color = p2Color;
+            players.forEach(p => p.reset());
+
+            generateHurdles();
+
+            cameraX = 0;
+            elapsedTime = 0;
+            particles = [];
+            fireworks = [];
+
+            document.getElementById('victoryModal').classList.add('hidden');
+            document.getElementById('victoryModalCard').classList.remove('scale-100', 'opacity-100');
+            document.getElementById('victoryModalCard').classList.add('scale-95', 'opacity-0');
+        }
+
+        function showVictoryModal() {
+            const modal = document.getElementById('victoryModal');
+            const modalCard = document.getElementById('victoryModalCard');
+            modal.classList.remove('hidden');
+
+            setTimeout(() => {
+                modalCard.classList.remove('scale-95', 'opacity-0');
+                modalCard.classList.add('scale-100', 'opacity-100');
+            }, 50);
+
+            const p1 = players[0];
+            const p2 = players[1];
+
+            let winnerText = "DRAG / SERI!";
+            if (p1.finishTime && p2.finishTime) {
+                if (p1.finishTime < p2.finishTime) winnerText = "PEMAIN 1 MENANG!";
+                else if (p2.finishTime < p1.finishTime) winnerText = "PEMAIN 2 MENANG!";
+            } else if (p1.finishTime) {
+                winnerText = "PEMAIN 1 MENANG!";
+            } else {
+                winnerText = "PEMAIN 2 MENANG!";
+            }
+
+            document.getElementById('winnerTitle').innerText = winnerText;
+            
+            const winner = p1.finishTime <= p2.finishTime ? p1 : p2;
+            const runnerUp = p1.finishTime <= p2.finishTime ? p2 : p1;
+
+            document.getElementById('winnerTimeText').innerText = winner.finishTime ? winner.finishTime.toFixed(2) + 's' : 'DNF';
+            document.getElementById('runnerUpTimeText').innerText = runnerUp.finishTime ? runnerUp.finishTime.toFixed(2) + 's' : 'DNF';
+
+            document.getElementById('p1TopSpeedText').innerText = p1.topSpeed + ' km/h';
+            document.getElementById('p2TopSpeedText').innerText = p2.topSpeed + ' km/h';
+        }
+
+        // --- KEYBOARD EVENT LISTENERS ---
+        window.addEventListener('keydown', (e) => {
+            sound.init();
+
+            const key = e.key.toUpperCase();
+
+            // Visual Key Highlight Helpers
+            highlightKey(e.key);
+
+            if (gameState !== STATE.RACING) return;
+
+            // Player 1: A / D / W
+            if (key === 'A' || key === 'A_AZERTY') {
+                players[0].pushStep('A');
+            } else if (key === 'D') {
+                players[0].pushStep('D');
+            } else if (key === 'W') {
+                players[0].jump();
+            }
+
+            // Player 2: ArrowLeft / ArrowRight / ArrowUp
+            if (e.key === 'ArrowLeft') {
+                players[1].pushStep('LEFT');
+            } else if (e.key === 'ArrowRight') {
+                players[1].pushStep('RIGHT');
+            } else if (e.key === 'ArrowUp') {
+                players[1].jump();
+            }
+        });
+
+        function highlightKey(key) {
+            let elId = null;
+            if (key === 'a' || key === 'A') elId = 'keyA';
+            if (key === 'd' || key === 'D') elId = 'keyD';
+            if (key === 'w' || key === 'W') elId = 'keyW';
+            if (key === 'ArrowLeft') elId = 'keyLeft';
+            if (key === 'ArrowRight') elId = 'keyRight';
+            if (key === 'ArrowUp') elId = 'keyUp';
+
+            if (elId) {
+                const badge = document.getElementById(elId);
+                if (badge) {
+                    badge.classList.add('active');
+                    setTimeout(() => badge.classList.remove('active'), 120);
+                }
+            }
+        }
+
+        // --- ON-SCREEN TOUCH BUTTONS SETUP ---
+        document.getElementById('touchP1A').addEventListener('click', () => { sound.init(); players[0].pushStep('A'); });
+        document.getElementById('touchP1D').addEventListener('click', () => { sound.init(); players[0].pushStep('D'); });
+        document.getElementById('touchP1W').addEventListener('click', () => { sound.init(); players[0].jump(); });
+
+        document.getElementById('touchP2Left').addEventListener('click', () => { sound.init(); players[1].pushStep('LEFT'); });
+        document.getElementById('touchP2Right').addEventListener('click', () => { sound.init(); players[1].pushStep('RIGHT'); });
+        document.getElementById('touchP2Up').addEventListener('click', () => { sound.init(); players[1].jump(); });
+
+        // --- UI INTERACTION SETUP ---
+        // Color Picker P1
+        document.querySelectorAll('.color-btn-p1').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.color-btn-p1').forEach(b => b.classList.remove('ring-2', 'ring-white', 'scale-110'));
+                e.target.classList.add('ring-2', 'ring-white', 'scale-110');
+                p1Color = e.target.getAttribute('data-color');
+                document.getElementById('p1JerseyDot').style.backgroundColor = p1Color;
+            });
+        });
+
+        // Color Picker P2
+        document.querySelectorAll('.color-btn-p2').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.color-btn-p2').forEach(b => b.classList.remove('ring-2', 'ring-white', 'scale-110'));
+                e.target.classList.add('ring-2', 'ring-white', 'scale-110');
+                p2Color = e.target.getAttribute('data-color');
+                document.getElementById('p2JerseyDot').style.backgroundColor = p2Color;
+            });
+        });
+
+        // Sound Toggle
+        document.getElementById('soundToggleBtn').addEventListener('click', () => {
+            sound.enabled = !sound.enabled;
+            const soundIcon = document.getElementById('soundIcon');
+            const soundText = document.getElementById('soundText');
+            if (sound.enabled) {
+                soundIcon.className = 'fa-solid fa-volume-high text-indigo-400';
+                soundText.innerText = 'Suara: ON';
+            } else {
+                soundIcon.className = 'fa-solid fa-volume-xmark text-slate-500';
+                soundText.innerText = 'Suara: OFF';
+            }
+        });
+
+        // Buttons Action
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            sound.init();
+            resetGame();
+            startCountdown();
+        });
+
+        document.getElementById('rematchBtn').addEventListener('click', () => {
+            sound.init();
+            resetGame();
+            startCountdown();
+        });
+
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            resetGame();
+            gameState = STATE.MENU;
+            document.getElementById('startMenuOverlay').classList.remove('hidden');
+        });
+
+        // --- RESIZE CANVAS HANDLER ---
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- INITIALIZATION ON LOAD ---
+        window.onload = () => {
+            resizeCanvas();
+            resetGame();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
